@@ -1,0 +1,38 @@
+""" Component 1"""
+import pygame
+
+pygame.init()
+
+screen = pygame.display.set_mode((1280, 720))
+game_icon = pygame.image.load('llama_icon.png')
+pygame.display.set_icon(game_icon)
+pygame.display.set_caption("Llama Run Game - Created by Conor")
+
+screen = pygame.display.set_mode((1280, 720))
+
+
+while True:
+    if not game_over:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            ground = pygame.image.load("ground.png")
+            ground = pygame.transform.scale(ground, (1440, 5))
+            ground_x = 0
+            ground_rect = ground.get_rect(center=(640, 400))
+
+        ground_x -= game_speed
+
+        screen.blit(ground, (ground_x, 345))
+        screen.blit(ground, (ground_x + 1280, 345))
+
+        player_score_text = game_font.render(f"Score: {int(score_now)}", True, black)
+        screen.blit(player_score_text, (10, 10))
+
+    if ground_x < -1280:
+        ground_x = 0
+
+    clock.tick(60)
+    pygame.display.update()

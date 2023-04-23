@@ -1,0 +1,227 @@
+"""Component 4"""
+
+import pygame
+import time
+import random
+VELOCITY = 20
+
+pygame.init()
+
+screen = pygame.display.set_mode((1280, 720))
+game_icon = pygame.image.load('llama_icon.png')
+pygame.display.set_icon(game_icon)
+pygame.display.set_caption("Llama Run Game - Created by Conor")
+
+
+black = (0, 0, 0)
+white = (255, 255, 255)
+red = (255, 0, 0)
+green = (188, 227, 199)
+yellow = (255, 255, 0)
+
+score_font = pygame.font.SysFont("freesansbold.ttf", 20)
+exit_font = pygame.font.Font("freesansbold.ttf", 30)
+game_font = pygame.font.SysFont("arialblack", 20)
+
+# read data from HI_score.txt
+with open("HI_score.txt", "r") as file:
+    high_score = int(file.read())
+
+
+clock = pygame.time.Clock()
+
+
+class Llama(pygame.sprite.Sprite):
+    def __init__(self, x_pos, y_pos):
+        super().__init__()
+        self.running_sprites = [
+            pygame.transform.scale(
+                pygame.image.load("Llama.png"), (50, 90)
+            )
+        ]
+        self.running_sprites.append(pygame.transform.scale(
+            pygame.image.load("Llama2.png"), (50, 90)))
+        self.running_sprites.append(pygame.transform.scale(
+            pygame.image.load("Llama3.png"), (50, 90)))
+        
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.is_jumping = False
+        self.current_image = 0
+        self.image = self.running_sprites[self.current_image]
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+        self.velocity = 20
+        self.gravity = 1.818181818181818
+
+    def jump(self):
+        self.y_pos -= self.velocity
+        self.velocity -= self.gravity
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+        if self.velocity < -VELOCITY:
+            self.velocity = VELOCITY
+            self.is_jumping = False
+
+    def apply_gravity(self):
+        if self.rect.centery >= 300:
+            self.rect.centery += self.gravity
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+
+    def update(self):
+        self.animate()
+        self.apply_gravity()
+    
+    def animate(self):
+        self.current_image += 0.15
+        if self.current_image >= 3:
+            self.current_image = 0
+        else:
+            self.image = self.running_sprites[int(self.current_image)]
+
+class cactus(pygame.sprite.Sprite):
+    def __init__(self, x_pos, y_pos):
+        super().__init__()
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.sprites = []
+        for _ in range(1, 7):
+            current_sprite = pygame.transform.scale(
+                pygame.image.load("cactus.png"), (25, 35)
+            )
+            self.sprites.append(current_sprite)
+        self.image = random.choice(self.sprites)
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self):
+        self.x_pos -= game_speed
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+# variables
+game_speed = 5
+jump_count = 10
+player_score = 0
+game_over = False
+cactus_timer = 0
+cactus_spawn = False
+cactus_cooldown = 1000
+score_now = 0
+
+ground = pygame.image.load("ground.png")
+ground = pygame.transform.scale(ground, (1440, 5))
+ground_x = 0
+ground_rect = ground.get_rect(center=(640, 400))
+
+llama_group = pygame.sprite.GroupSingle()
+cactus_group = pygame.sprite.Group()
+
+llama = Llama(50, 300)
+llama_group.add(llama)
+
+
+
+
+
+
+def end_game():
+    global player_score, game_speed
+    game_over_text = game_font.render("Game Over!", True, "black")
+    game_over_rect = game_over_text.get_rect(center=(640, 300))
+    score_text = game_font.render(f"Score: {int(player_score)}", True, "black")
+    score_rect = score_text.get_rect(center=(640, 340))
+    screen.blit(game_over_text, game_over_rect)
+    screen.blit(score_text, score_rect)
+    game_speed = 5
+    cactus_group.empty()
+
+
+# sourcery skip: use-fstring-for-concatenation
+while True:
+    if not game_over:
+        score_now += 1
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_SPACE]:
+        llama.is_jumping = True
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            quit()
+        if (
+            game_over == True
+            and event.type == pygame.KEYDOWN
+            and event.key == pygame.K_RETURN
+        ):
+            # variables
+            game_speed = 5
+            jump_count = 10
+            player_score = 0
+            game_over = False
+            cactus_timer = 0
+            cactus_spawn = False
+            cactus_cooldown = 1000
+            score_now = 0
+
+            ground = pygame.image.load("ground.png")
+            ground = pygame.transform.scale(ground, (1440, 5))
+            ground_x = 0
+            ground_rect = ground.get_rect(center=(640, 400))
+
+            llama_group = pygame.sprite.GroupSingle()
+            cactus_group = pygame.sprite.Group()
+
+            llama = Llama(50, 300)
+            llama_group.add(llama)
+
+    if llama.is_jumping:
+        llama.jump()
+    screen.fill(white)
+
+    if pygame.sprite.spritecollide(llama_group.sprite, cactus_group, False):
+        game_over = True
+
+    if game_over:
+        screen.blit(game_font.render("Game Over", True, black), (200, 200))
+        screen.blit(game_font.render("Press Enter to restart", True, black), (200, 250))
+        screen.blit(game_font.render("Your Score was " + str(score_now), True, black), (200, 300))
+        # if score_now is bigger then high_score set high_score to score_now
+        # set HI_score.txt as high score
+        if score_now > high_score:
+            high_score = score_now
+        with open("HI_score.txt", "w") as f:
+            f.write(str(high_score))
+
+    if not game_over:
+        game_speed += 0.0025
+
+        if pygame.time.get_ticks() - cactus_timer >= cactus_cooldown:
+            cactus_spawn = True
+
+        if cactus_spawn:
+            cactus_random = random.randint(1, 50)
+            if cactus_random in range(1, 7):
+                new_cactus = cactus(1280, 330)
+                cactus_group.add(new_cactus)
+                cactus_timer = pygame.time.get_ticks()
+                cactus_spawn = False
+
+        llama_group.update()
+        llama_group.draw(screen)
+
+        cactus_group.update()
+        cactus_group.draw(screen)
+
+        ground_x -= game_speed
+
+        screen.blit(ground, (ground_x, 345))
+        screen.blit(ground, (ground_x + 1280, 345))
+
+        player_score_text = game_font.render(f"Score: {int(score_now)}", True, black)
+        screen.blit(player_score_text, (10, 10))
+
+    if ground_x < -1280:
+        ground_x = 0
+
+    print(score_now)
+
+    clock.tick(60)
+    pygame.display.update()

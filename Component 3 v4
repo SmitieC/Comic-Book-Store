@@ -1,0 +1,190 @@
+"""Component 3"""
+
+import pygame
+import time
+import random
+VELOCITY = 20
+
+pygame.init()
+
+screen = pygame.display.set_mode((1280, 720))
+game_icon = pygame.image.load('llama_icon.png')
+pygame.display.set_icon(game_icon)
+pygame.display.set_caption("Llama Run Game - Created by Conor")
+
+
+black = (0, 0, 0)
+white = (255, 255, 255)
+red = (255, 0, 0)
+green = (188, 227, 199)
+yellow = (255, 255, 0)
+
+clock = pygame.time.Clock()
+
+
+class Llama(pygame.sprite.Sprite):
+    def __init__(self, x_pos, y_pos):
+        super().__init__()
+        self.running_sprites = [
+            pygame.transform.scale(
+                pygame.image.load("Llama.png"), (50, 90)
+            )
+        ]
+        self.running_sprites.append(pygame.transform.scale(
+            pygame.image.load("Llama2.png"), (50, 90)))
+        self.running_sprites.append(pygame.transform.scale(
+            pygame.image.load("Llama3.png"), (50, 90)))
+        
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.is_jumping = False
+        self.current_image = 0
+        self.image = self.running_sprites[self.current_image]
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+        self.velocity = 20
+        self.gravity = 1.818181818181818
+
+    def jump(self):
+        self.y_pos -= self.velocity
+        self.velocity -= self.gravity
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+        if self.velocity < -VELOCITY:
+            self.velocity = VELOCITY
+            self.is_jumping = False
+
+    def apply_gravity(self):
+        if self.rect.centery >= 300:
+            self.rect.centery += self.gravity
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+
+    def update(self):
+        self.animate()
+        self.apply_gravity()
+    
+    def animate(self):
+        self.current_image += 0.15
+        if self.current_image >= 3:
+            self.current_image = 0
+        else:
+            self.image = self.running_sprites[int(self.current_image)]
+
+class cactus(pygame.sprite.Sprite):
+    def __init__(self, x_pos, y_pos):
+        super().__init__()
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.sprites = []
+        for _ in range(1, 7):
+            current_sprite = pygame.transform.scale(
+                pygame.image.load("cactus.png"), (25, 35)
+            )
+            self.sprites.append(current_sprite)
+        self.image = random.choice(self.sprites)
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self):
+        self.x_pos -= game_speed
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+
+# variables
+game_speed = 5
+jump_count = 10
+player_score = 0
+game_over = False
+cactus_timer = 0
+cactus_spawn = False
+cactus_cooldown = 1000
+score_now = 0
+
+ground = pygame.image.load("ground.png")
+ground = pygame.transform.scale(ground, (1440, 5))
+ground_x = 0
+ground_rect = ground.get_rect(center=(640, 400))
+
+llama_group = pygame.sprite.GroupSingle()
+cactus_group = pygame.sprite.Group()
+
+llama = Llama(50, 300)
+llama_group.add(llama)
+
+def end_game():
+    global player_score, game_speed
+    game_speed = 5
+    cactus_group.empty()
+
+
+# sourcery skip: use-fstring-for-concatenation
+while True:
+    if not game_over:
+        keys = pygame.key.get_pressed()
+    if keys[pygame.K_SPACE]:
+        llama.is_jumping = True
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            quit()
+        if (
+            game_over == True
+            and event.type == pygame.KEYDOWN
+            and event.key == pygame.K_RETURN
+        ):
+            # variables
+            game_speed = 5
+            jump_count = 10
+            game_over = False
+            cactus_timer = 0
+            cactus_spawn = False
+            cactus_cooldown = 1000
+
+            ground = pygame.image.load("ground.png")
+            ground = pygame.transform.scale(ground, (1440, 5))
+            ground_x = 0
+            ground_rect = ground.get_rect(center=(640, 400))
+
+            llama_group = pygame.sprite.GroupSingle()
+            cactus_group = pygame.sprite.Group()
+
+            llama = Llama(50, 300)
+            llama_group.add(llama)
+
+    if llama.is_jumping:
+        llama.jump()
+    screen.fill(white)
+
+    if pygame.sprite.spritecollide(llama_group.sprite, cactus_group, False):
+        game_over = True
+
+    if not game_over:
+        game_speed += 0.0025
+
+        if pygame.time.get_ticks() - cactus_timer >= cactus_cooldown:
+            cactus_spawn = True
+
+        if cactus_spawn:
+            cactus_random = random.randint(1, 50)
+            if cactus_random in range(1, 7):
+                new_cactus = cactus(1280, 330)
+                cactus_group.add(new_cactus)
+                cactus_timer = pygame.time.get_ticks()
+                cactus_spawn = False
+
+        llama_group.update()
+        llama_group.draw(screen)
+
+        cactus_group.update()
+        cactus_group.draw(screen)
+
+        ground_x -= game_speed
+
+        screen.blit(ground, (ground_x, 345))
+        screen.blit(ground, (ground_x + 1280, 345))
+
+    if ground_x < -1280:
+        ground_x = 0
+
+    print(score_now)
+
+    clock.tick(60)
+    pygame.display.update()
